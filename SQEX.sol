@@ -1,5 +1,15 @@
+/*
+* This is a prototype of interaces for SquarEx project.
+*    This is just to depict how the contracts will be used later.
+*    This is not a working production-ready contract code.
+* 
+*    Of course, SquarEx will evolve and move from the prototype
+*    to production ready system.
+*
+*    There are still more function to implement.
+*/ 
 
-// This is for Whitepaper only
+// This is a main SQEX token contract
 contract SQEX {
     function totalSupply() constant returns (uint256 supply);
     function balanceOf(address _owner) constant returns (uint256 balance);
@@ -12,6 +22,7 @@ contract SQEX {
     function unlock(address _owner, uint256 amount);
 }
 
+// This is a Project token contract (different for each project on a SquarEx platform) 
 contract ProjectToken{
     function totalSupply() constant returns (uint256 supply);
     function balanceOf(address _owner) constant returns (uint256 balance);
@@ -75,6 +86,22 @@ contract MortgageRequest {
      uint interestRate;
 }
 
+// The development project is initiated by the Developer
+// 
+// 1. The Developer prepares special formatted document using SquarEx platform 
+//   - “the proposal” (see format details above);
+// 2. The Developer uploads the proposal to the SquarEx and pays $40K + $80K fees in SQEX tokens;
+// 3. Due diligence auditor is selected from the list by two BranchCurators and accepts the offer;
+// 4. Auditor does the due diligence: checks the proposal, modifies and improves it effectively adding necessary stages and details. 
+// 5. The auditing report is published; 
+// 6. BranchCurators accept or reject the proposal;
+// 7. For each development stage: the Developer is selected (see below). 
+// 8. Stage costs can be changed here.
+// 9. For each development stage: the Auditor is selected (see below).
+// 10. Auditor rewards can be changed here.
+// 11. Total cost of the development is calculated;
+// 12. Once the final proposal is ready and all necessary information is provided and set, SquarEx starts ISO of the project;
+// 13. ISO either finishes successfully or fails.
 contract Project {
      enum State {
           Init,
@@ -175,6 +202,7 @@ struct SeatRequest {
      uint votes;
 }
 
+// Anybody can fork this code
 contract SquarExBranch is Auditing {
      mapping (uint => address) branchCurators;
      mapping (uint => address) acceptedAuditors;
@@ -219,6 +247,7 @@ contract SquarExBranch is Auditing {
      function voteForChangeProposal(uint proposalId, bool accept)byBranchCurators;
 }
 
+// This is the main DAO contract code
 contract SquarExDAO {
      enum State {
           Init,
