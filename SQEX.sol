@@ -58,6 +58,23 @@ contract PropertyBuyingOrBooking {
      bool isBooking;
 }
 
+contract MortgageRequest {
+     enum State {
+          Init,
+          TokensTransferred,
+          MortgageCancelled,
+          MortgageCompleted
+     }
+     State state = State.Init;
+
+     address lender;
+     address borrower;
+
+     uint projectId;
+     uint projectTokensRequestAmount;
+     uint interestRate;
+}
+
 contract Project {
      enum State {
           Init,
@@ -90,33 +107,66 @@ contract Project {
      uint numStages;
      mapping (uint => Stage) stages;
 
-     function selectDueDilAuditor(address dueDilAuditor);
-     function attachDueDilReport(string report);
-     function voteForAuditingReport(uint report, bool acceptAuditing,bool acceptProposal);
-
-     function becomeDeveloperOfStage(uint stageId,uint lockAmount);
-     function becomeAuditorOfStage(uint stageId,uint lockAmount);
+     function selectDueDilAuditor(address dueDilAuditor)byBranchCurators;
+     // Auditors do the auditing checks after the development stage is finished. 
+     // Auditors should send the auditor’s report to the SquarEx. 
+     // Each stage auditing report is then checked and approved by ProjectCurators.
+     function attachDueDilReport(string report)byAuditor;
+     // After development stage is completed and Auditor published a stage auditing report 
+     // -> ProjectCurators of the current project should check it and vote
+     function voteForAuditingReport(uint report, bool acceptAuditing,bool acceptProposal)byBranchCurators;
+     function becomeDeveloperOfStage(uint stageId,uint lockAmount)byTokenHolders;
+     // Auditor can become an Auditor of a selected project stage while project is in 
+     // ‘waiting for developers’ stage (by default, for 30 days). 
+     // Auditor should be an accepted by BranchCurators of the current branch 
+     // (see ‘Becoming an auditor’ scenario).
+     function becomeAuditorOfStage(uint stageId,uint lockAmount)byTokenHolders;
+     // Auditor of can request resignment from doing the current stage auditing
+     function resignAuditorOfStage(uint stageId,uint lockAmount)byAuditor;
 
      // ProjectCurators
-     function projectCuratorRequest(uint lockAmount);
+     function projectCuratorRequest(uint lockAmount)byProjectTokenHolders;
+     function resignProjectCuratorRequest(address projectCurator, string attachedInfo)byProjectTokenHolders;
+     // Any ProjectCurator can request a resignment of himself:w
+     function resignMe()byProjectCurators;
      function nextProjectCuratorsElections();
-     function resignProjectCuratorRequest(address projectCurator, string attachedInfo);
-     function resignMe();
 
      // Secondary ISO
-     function proposeSecondaryISO(string report);
-     function selectSecondaryDueDilAuditor(address dueDilAuditor);
-     function voteForSecondaryAuditingReport(uint report, bool acceptAuditing,bool acceptProposal);
+     // Any ProjectCurator can add a special proposal to start a Secondary ISO 
+     // to get extra funding to complete the project.
+     function proposeSecondaryISO(string report)byProjectCurators;
+     // Due diligence auditor is selected from the list by two BranchCurators of the current 
+     // branch and accepts the offer
+     function selectSecondaryDueDilAuditor(address dueDilAuditor)byProjectCurators;
+     // BranchCurators of the current branch accept or reject the audit report and proposal (vote for 10 days)
+     function voteForSecondaryAuditingReport(uint report, bool acceptAuditing,bool acceptProposal)byProjectCurators;
 
      // Booking/Buying
-     function requestBooking(uint projectId,uint tokensAmount);
-     function requestBuying(uint projectId,uint tokensAmount);
+     // Any Project Token Holder can book a real estate property. 
+     // In this case his project tokens are not burned (as in ‘buying a real estate property’ scenario). 
+     // He can later cancel the booking.
+     function requestBooking(uint projectId,uint tokensAmount)byProjectTokenHolders;
+     function cancelBooking(uint projectId,uint tokensAmount)byProjectTokenHolders;
+     function requestBuying(uint projectId,uint tokensAmount)byProjectTokenHolders;
 
      // Automatic functions
      function selectDevelopers();
      function selectAuditors();
      function startISO();
      function startSecondaryISO();
+
+     // Request Mortgage
+     // Any Project Token Holder can request a mortgage if own at least 20% 
+     // (by default, can be changed by BranchCurators) of a property
+     function requestMortgage()byProjectTokenHolders;
+     // Any Project Token Holder can provide a mortgage to the Borrower to get an interest
+     // First he  sets basic parameters and then waits for acceptance by the Borrower
+     function addMortgageOffer(uint mortgageId, uint interestRate)byProjectTokenHolders;
+     // After Lender added a mortgage offer Borrower should now accept it
+     function acceptMortgageOffer(uint mortgageId)byProjectTokenHolders;
+     // Borrower should repay his mortgage regularly
+     function repayMortgage(uint mortgageId)byProjectTokenHolders;
+     function completeMortgage(uint mortgageId)byProjectTokenHolders; 
 }
 
 struct SeatRequest {
@@ -139,24 +189,34 @@ contract SquarExBranch is Auditing {
 
 // methods:
      // BranchCurators
-     function branchCuratorRequest(uint lockAmount);
+     // Any SQEX token holder can become a BranchCurator
+     function branchCuratorRequest(uint lockAmount)byTokenHolders;
+     // Any SQEX token holder can add a proposal to resign BranchCurator
+     function resignBranchCuratorRequest(address branchCurator, string attachedInfo)byTokenHolders;
+     // Any BranchCurator can request a resignment of himself
+     function resignMe()byBranchCurators;
+     // SuperCurators review the proposal and vote for 30 days
+     // There is no need to vote ‘positive’ (that is the default answer)
+     function voteForBranchCuratorResignment(address branchCurator,bool resign)bySuperCurators;
      function nextBranchCuratorsElections();
-     function resignBranchCuratorRequest(address branchCurator, string attachedInfo);
-     function resignMe();
-     function voteForBranchCuratorResignment(address branchCurator,bool resign);
      
      // Auditors
-     function becomeAuditorRequest(uint lockAmount);
-     function acceptAuditorRequest(address auditor);
-     function wantToDoDueDil(uint lockAmount);
-     function resignAuditor();
+     // Any SQEX token holder can become an Auditor of the branch
+     function becomeAuditorRequest(uint lockAmount)byTokenHolders;
+     // Any two BranchCurators should accept the request
+     function acceptAuditorRequest(address auditor)byBranchCurators;
+     function wantToDoDueDil(uint lockAmount)byAuditor;
+     function resignAuditor()byAuditor;
+     // SQEX token holders vote for 30 days
+     function voteForBranchAuditorResignment(address branchCurator,bool resign)byTokenHolders;
 
      // Developers
-     function newDevelopmentProposal(string proposalLink);
+     // Any SQEX token holder can add a new development project proposal
+     function newDevelopmentProposal(string proposalLink)byTokenHolders;
 
      // Params
-     function parameterChangeProposal(string proposal,uint paramId,uint value);
-     function voteForChangeProposal(uint proposalId, bool accept);
+     function parameterChangeProposal(string proposal,uint paramId,uint value)byBranchCurators;
+     function voteForChangeProposal(uint proposalId, bool accept)byBranchCurators;
 }
 
 contract SquarExDAO {
@@ -165,7 +225,6 @@ contract SquarExDAO {
           ICO_Started,
           ICO_Finished
      }
-
      SQEX tokens; 
 
      // 10 max
@@ -178,20 +237,32 @@ contract SquarExDAO {
 
 // methods:
      // SuperCurators
-     function superCuratorRequest(uint lockAmount);
+     // Any SQEX token holder can become a SuperCurator
+     function superCuratorRequest(uint lockAmount)byTokenHolders;
+     // Any SQEX token holder can add a proposal to resign SuperCurator
+     function resignSuperCuratorRequest(address superCurator, string attachedInfo)byTokenHolders;
+     // Any SuperCurator can request a resignment of himself
+     function resignMe()bySuperCurators;
+     // SQEX token holders vote for 30 days
+     function voteForSuperCuratorResignment(address superCurator, bool resign)byTokenHolders;
      function nextSuperCuratorsElections();
-     function resignSuperCuratorRequest(address superCurator, string attachedInfo);
-     function resignMe();
-     function voteForSuperCuratorResignment(address superCurator, bool resign);
 
      // Branches
-     function addBranchProposal(SquarExBranch branch);
-     function voteForBranchProposal(uint proposalId, bool accept);
+     // Any SQEX token holder can request a new branch addition
+     function addBranchProposal(SquarExBranch branch)byTokenHolder;
+     // Any SQEX token holder can request a new branch addition
+     function voteForBranchProposal(uint proposalId, bool accept)bySuperCurators;
 
      // Code Update
-     function codeUpdateProposal(string proposal);
-     function voteForUpdateProposal(uint proposalId, bool accept);
+     // Any SuperCurator can request a code update
+     function codeUpdateProposal(string proposal)bySuperCurators;
+     // SQEX token holders and project token holders review the new code and vote for 4 weeks
+     function voteForUpdateProposal(uint proposalId, bool accept)byTokenHolders;
 
      // Buy-back
+     // The buy back is a regular process that is started automatically by the SquarEx DAO code. 
+     // SquarEx buy back fund is used to buy tokens. If it is empty - no buy back occurs.
+     // During the buy-back an offer to buy a SQEX tokens is added to the Exchange. 
+     // Any SQEX token holder can sell his tokens at a fair price and get ETH in return.
      function initiateBuyback();
 }
